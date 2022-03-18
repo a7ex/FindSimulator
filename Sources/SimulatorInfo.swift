@@ -24,6 +24,16 @@ struct ListResult: Codable {
     var osversions: [OsVersion] {
         return devices.keys.compactMap { OsVersion(string: $0) }
     }
+    var enabledOSVersions: [OsVersion] {
+        var enabledVersions = [OsVersion]()
+        for (os, infos) in devices {
+            if !infos.filter({ $0.isAvailable == true }).isEmpty,
+               let osVersion = OsVersion(string: os) {
+                enabledVersions.append(osVersion)
+            }
+        }
+        return enabledVersions
+    }
 }
 
 struct PairResult: Codable {

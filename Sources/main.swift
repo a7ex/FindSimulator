@@ -18,10 +18,10 @@ struct findsimulator: ParsableCommand {
     @Option(name: .shortAndLong, help: "The os type. It can be either 'ios', 'watchos' or 'tvos'. Defaults to 'ios'. Does only apply without '-pairs' option.")
     var osType = "ios"
 
-    @Option(name: .shortAndLong, help: "The major OS version. Can be something like '12' or '14'. Defaults to 'latest' which is the latest installed major version. Does only apply without '-pairs' option.")
+    @Option(name: .shortAndLong, help: "The major OS version. Can be something like '12' or '14' or 'latest', which is the latest installed major version. Does only apply without '-pairs' option.")
     var majorOSVersion = "latest"
 
-    @Option(name: .shortAndLong, help: "The minor OS version. Can be something like '2' or '4'. Defaults to 'latest' which is the latest installed minor version of a given major version. Note, if 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does only apply without '-pairs' option.")
+    @Option(name: .shortAndLong, help: "The minor OS version. Can be something like '2' or '4' or 'latest', which is the latest installed minor version of a given major version. Note, if 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does only apply without '-pairs' option.")
     var subOSVersion = "latest"
     
     @Flag(name: .shortAndLong, help: "Find and iPhone in available iPhone/Watch Pairs.")
@@ -72,7 +72,9 @@ struct findsimulator: ParsableCommand {
                 let targetMajorVersion: Int
                 let targetSubVersion: Int
                 if majorOSVersion.lowercased() == "latest" {
-                    targetMajorVersion = pairs.osversions.sorted(by: { $0.majorVersion > $1.majorVersion }).first?.majorVersion ?? 0
+                    targetMajorVersion = pairs.enabledOSVersions
+                        .filter { osType.lowercased() == $0.name.lowercased() }
+                        .sorted(by: { $0.majorVersion > $1.majorVersion }).first?.majorVersion ?? 0
                     targetSubVersion = 0
 
                 } else {
@@ -81,7 +83,8 @@ struct findsimulator: ParsableCommand {
                         guard targetMajorVersion > 0 else {
                             throw(NSError.noMajorVersionProvided)
                         }
-                        targetSubVersion = pairs.osversions
+                        targetSubVersion = pairs.enabledOSVersions
+                            .filter { osType.lowercased() == $0.name.lowercased() }
                             .filter { $0.majorVersion == targetMajorVersion }
                             .sorted(by: { $0.minorVersion > $1.minorVersion }).first?.minorVersion ?? 0
                     } else {
