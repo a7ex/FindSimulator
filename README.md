@@ -10,6 +10,14 @@ There is also an option to list all matches along with their names.
 
 You can also find iPhone simulators with paired watches.
 
+## How to use it
+The tool doesn't create any file. It justs outputs its results to standard out.
+You can store the result in a shell variable:
+```
+simulator_id=$(findsimulator -o ios -m latest iPhone)
+xcrun xcodebuild test -workspace MyApp.xcworkspace -scheme MyApp -destination "id=$simulator_id"
+```
+
 ## How to get it
 ### Using homebrew
 ```
@@ -86,12 +94,3 @@ OPTIONS:
 Now that a copy of `findsimulator` is in your search path, delete it from your desktop.
 
 You're ready to go! 🎉
-
-## How to use it
-The tool doesn't create any file. It justs outputs its results to standard out.
-You can store the result in a shell variable:
-```
-simulator_id=$(findsimulator -o ios -m latest iPhone)
-xcrun xcodebuild test -workspace MyApp.xcworkspace -scheme MyApp -destination "id=$simulator_id"
-
-```
