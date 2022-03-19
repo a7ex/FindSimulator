@@ -64,19 +64,7 @@ findsimulator -o watchOS "Series 5" --list-all
 brew tap a7ex/homebrew-formulae
 brew install findsimulator
 ```
-### Download binary
-- Download `findsimulator.zip` binary from the latest [release](https://github.com/a7ex/FindSimulator/releases/latest)
-- Copy `findsimulator` to your desktop
-- Open a Terminal window and run this command to give the app permission to execute:
-
-```
-chmod +x ~/Desktop/findsimulator
-```
-**IMPORTANT NOTE:** This binary is not notarized/certified by Apple yet. So you must go to SystemSettings:Security and explicitely allow the app to execute, after the first attempt to launch it in the terminal, in case you want to take the risk.
-
-
-Or build the tool yourself:
-
+### Build from source
 - Clone the repository / Download the source code
 - Run `swift build -c release` to build `findsimulator` executable
 - Run `open .build/release` to open directory containing the executable file in Finder
