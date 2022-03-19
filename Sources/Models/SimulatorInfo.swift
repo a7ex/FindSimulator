@@ -1,12 +1,12 @@
 //
 //  SimulatorInfo.swift
-//  findsimulator
 //
 //  Created by Alex da Franca on 23.06.21.
 //
 
 import Foundation
 
+/// Codable response object of 'simctl -j' (JSON) output.
 struct SimulatorInfo: Codable {
     let udid: String // "60D88D7C-7E8D-4F9F-8CB7-51C0D6CA77A3",
     let name: String // "iPhone 12 Pro"

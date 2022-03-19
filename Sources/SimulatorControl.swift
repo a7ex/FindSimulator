@@ -7,21 +7,35 @@
 
 import Foundation
 
+/// Interface to the simctl command line tool, which is part of the Xcode tools suite
+
 struct SimulatorControl {
     struct ErrorResponse: Codable {
         let message: String
         let status: Int
     }
 
+    /// The os type. It can be either 'ios', 'watchos' or 'tvos'.
+    /// Note: Does only apply to filterSimulators().
     let osFilter: String
+
+    /// The major OS version. Can be something like '12' or '14', 'all' or 'latest', which is the latest installed major version.
+    /// Note: Does only apply to filterSimulators().
     let majorVersionFilter: String
+
+    /// The minor OS version. Can be something like '2' or '4', 'all' or 'latest', which is the latest installed minor version of a given major version.
+    /// Note,: If 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does only apply to filterSimulators().
     let minorVersionFilter: String
+
+    /// A string contains check on the name of the simulator.
     let nameFilter: String
 
     private let decoder = JSONDecoder()
 
     // MARK: - Public interface
 
+    /// Find simulators
+    /// - Returns: Array of OsVersions objects containing available simulators, which match the specified filters.
     func filterSimulators() throws -> [OsVersion] {
         let rslt = simulatorList(pattern: nameFilter)
         switch rslt {
@@ -35,6 +49,8 @@ struct SimulatorControl {
         }
     }
 
+    /// Find iPhone simulators with paired AppleWatch simulators
+    /// - Returns: Array of SimulatorInfo objects containing available iPhone simulators, which have paired AppleWatch simulators.
     func filterSimulatorPairs() throws -> [SimulatorInfo] {
         var simulators = [SimulatorInfo]()
         let rslt = phonesPairedWithWatch()

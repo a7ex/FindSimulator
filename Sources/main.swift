@@ -96,7 +96,7 @@ private extension OsVersion {
 private extension NSError {
     static let noDeviceFound: NSError = {
         let domain = Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String ?? "com.farbflash"
-        return NSError(domain: "\(domain).error", code: 1, userInfo: [NSLocalizedDescriptionKey: "- No device found -"])
+        return NSError(domain: "\(domain).error", code: 1, userInfo: [NSLocalizedDescriptionKey: "No simulator found, wghich matches the query."])
     }()
 }
 

@@ -51,7 +51,7 @@ findsimulator -o watchOS -m 8 -s latest --list-all
 // platform=watchOS Simulator,OS=8.5,id=84E856B2-2B8D-46E3-B254-9EAED4AD36C3,name=Apple Watch Series 5 - 40mm
 ```
 
-Simulators with latest watchOS (default) containing "Series 5" in their name:
+Simulators with latest watchOS containing "Series 5" in their name:
 ```
 findsimulator -o watchOS "Series 5" --list-all
 // platform=watchOS Simulator,OS=8.5,id=B56A7F31-8597-4E9F-842B-9D1706B1AD63,name=Apple Watch Series 5 - 44mm
