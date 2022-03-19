@@ -8,16 +8,84 @@
 import Foundation
 
 struct SimulatorControl {
+    struct ErrorResponse: Codable {
+        let message: String
+        let status: Int
+    }
+
+    let osFilter: String
+    let majorVersionFilter: String
+    let minorVersionFilter: String
+    let nameFilter: String
+
     private let decoder = JSONDecoder()
+
+    // MARK: - Public interface
+
+    func filterSimulators() throws -> [OsVersion] {
+        let rslt = simulatorList(pattern: nameFilter)
+        switch rslt {
+        case .success(let pairs):
+            let (majorVersion, subVersion) = computeVersions(in: pairs, os: osFilter)
+           return pairs.enabledOSVersions
+                .filter { $0.isEligible(for: osFilter, major: majorVersion, minor: subVersion)}
+
+        case .failure(let error):
+            throw(error)
+        }
+    }
+
+    func filterSimulatorPairs() throws -> [SimulatorInfo] {
+        var simulators = [SimulatorInfo]()
+        let rslt = phonesPairedWithWatch()
+        switch rslt {
+        case .success(let pairs):
+            for (_, pair) in pairs.pairs where pair.isAvailable {
+                if nameFilter.isEmpty || pair.phone.name.contains(nameFilter) {
+                    simulators.append(pair.phone)
+                }
+            }
+        case .failure(let error):
+            throw(error)
+        }
+        return simulators
+    }
+
+    // MARK: - Private interface
+
+    private func computeVersions(in simlist: SimulatorListResult, os: String) -> (majorVersion: Int, minorVersion: Int) {
+        let majorVersion: Int
+        let subVersion: Int
+        if majorVersionFilter.lowercased() == "latest" {
+            majorVersion = simlist.latestEnabledVersion(for: os)
+            if minorVersionFilter.lowercased() == "latest" {
+                subVersion = simlist.latestEnabledSubVersion(for: os, and: majorVersion)
+            } else {
+                subVersion = Int(minorVersionFilter) ?? 0
+            }
+        } else {
+            majorVersion = Int(majorVersionFilter) ?? 0
+            if minorVersionFilter.lowercased() == "latest",
+               majorVersion > 0 {
+                subVersion = simlist.latestEnabledSubVersion(for: os, and: majorVersion)
+            } else {
+                subVersion = Int(minorVersionFilter) ?? 0
+            }
+        }
+        return (majorVersion: majorVersion, minorVersion: subVersion)
+    }
+
+    // MARK: - Interface to simctl command line tool
     
-    func simulatorId(pattern: String) -> Result<ListResult, Error> {
+    private func simulatorList(pattern: String) -> Result<SimulatorListResult, Error> {
         var arguments = ["simctl", "list", "devices", "-j"]
         if !pattern.isEmpty {
             arguments += [pattern]
         }
         return executeJSONTask(with: arguments)
     }
-    func pairId() -> Result<PairResult, Error> {
+
+    private func phonesPairedWithWatch() -> Result<PairResult, Error> {
         let arguments = ["simctl", "list", "pairs", "-j"]
         return executeJSONTask(with: arguments)
     }
@@ -61,14 +129,47 @@ struct SimulatorControl {
     }
 }
 
+/// Map result from simctl call
+private extension SimulatorListResult {
+    var enabledOSVersions: [OsVersion] {
+        return osversions.filter { $0.containsEnabledSimulators }
+    }
+    func latestEnabledVersion(for platform: String) -> Int {
+        return enabledOSVersions
+            .filter { platform.lowercased() == $0.name.lowercased() }
+            .sorted(by: { $0.majorVersion > $1.majorVersion }).first?.majorVersion ?? 0
+    }
+    func latestEnabledSubVersion(for platform: String, and majorVersion: Int) -> Int {
+        return enabledOSVersions
+            .filter { platform.lowercased() == $0.name.lowercased() }
+            .filter { $0.majorVersion == majorVersion }
+            .sorted(by: { $0.minorVersion > $1.minorVersion }).first?.minorVersion ?? 0
+    }
+    private var osversions: [OsVersion] {
+        return devices
+            .enumerated()
+            .compactMap { OsVersion(string: $0.element.key, simulators: $0.element.value) }
+    }
+}
+
+private extension OsVersion {
+    var containsEnabledSimulators: Bool {
+        return !simulators.filter({ $0.isAvailable == true }).isEmpty
+    }
+    func isEligible(for osType: String, major: Int, minor: Int) -> Bool {
+        return (osType.lowercased() == name.lowercased()) &&
+        (major < 1 || majorVersion == major) &&
+        (minor < 1 || minorVersion == minor)
+    }
+}
+
 private extension NSError {
     convenience init(message: String, status: Int = 1) {
         let domain = Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String ?? "com.farbflash"
         self.init(domain: "\(domain).error", code: status, userInfo: [NSLocalizedDescriptionKey: message])
     }
-}
-
-struct ErrorResponse: Codable {
-    let message: String
-    let status: Int
+    static let noMajorVersionProvided: NSError = {
+        let domain = Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String ?? "com.farbflash"
+        return NSError(domain: "\(domain).error", code: 2, userInfo: [NSLocalizedDescriptionKey: "When specifying 'latest' for the minor OS version, you must provide a majorVersion."])
+    }()
 }
