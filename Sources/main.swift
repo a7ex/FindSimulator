@@ -8,17 +8,20 @@
 import Foundation
 import ArgumentParser
 
-private let marketingVersion = "0.2"
+private let marketingVersion = "0.3"
 
 struct findsimulator: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Interface to simctl in order to get suitable strings for destinations for the xcodebuild command."
     )
     
-    @Option(name: .shortAndLong, help: "The os type. It can be either 'ios', 'watchos' or 'tvos'. Does only apply without '-pairs' option.")
+    @Option(name: .shortAndLong, help: "The os type. It can be either 'ios', 'watchos' or 'tvos'. Does only apply without '--pairs' option.")
     var osType = "ios"
 
-    @Option(name: .shortAndLong, help: "The major OS version. Can be something like '12' or '14', 'all' or 'latest', which is the latest installed major version. Does only apply without '-pairs' option.")
+    @Option(name: .shortAndLong, help: "A regex pattern to match the device name. Does only apply without '--pairs' option.")
+    var regexPattern = ""
+
+    @Option(name: .shortAndLong, help: "The major OS version. Can be something like '12' or '14', 'all' or 'latest', which is the latest installed major version. Does only apply without '--pairs' option.")
     var majorOSVersion = "all"
 
     @Option(name: .shortAndLong, help: "The minor OS version. Can be something like '2' or '4', 'all' or 'latest', which is the latest installed minor version of a given major version. Note, if 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does only apply without '-pairs' option.")
@@ -33,8 +36,8 @@ struct findsimulator: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Print version of this tool.")
     var version: Int
     
-    @Argument(help: "A string contains check on the name of the simulator.")
-    var name_contains = ""
+    @Argument(help: "A simple 'string contains' check on the name of the simulator. Use the [-r | --regex-pattern] option for more finegrained searches instead.")
+    var nameContains = ""
     
     mutating func run() throws {
         guard version != 1 else {
@@ -45,7 +48,8 @@ struct findsimulator: ParsableCommand {
             osFilter: osType,
             majorVersionFilter: majorOSVersion,
             minorVersionFilter: subOSVersion,
-            nameFilter: name_contains
+            nameFilter: nameContains,
+            regexPattern: regexPattern
         )
         if pairs == 1 {
             let sims = (try controller.filterSimulatorPairs()).sorted(by: { $0.name > $1.name})
@@ -69,6 +73,7 @@ struct findsimulator: ParsableCommand {
                     }
                 }
             } else {
+
                 if let firstVersion = versions.first,
                    let first = firstVersion.simulators.sorted(by: { $0.name > $1.name}).first {
                     print("platform=\(firstVersion.platform),id=\(first.udid)")

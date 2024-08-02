@@ -4,9 +4,9 @@
 //  Created by Alex da Franca on 26.12.21.
 //
 
-import XcresultparserTests
+import findsimulatorTests
 import XCTest
 
 var tests = [XCTestCaseEntry]()
-tests += XcresultparserTests.allTests()
+tests += findsimulatorTests.allTests()
 XCTMain(tests)

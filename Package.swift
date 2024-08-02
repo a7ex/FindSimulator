@@ -1,10 +1,10 @@
-// swift-tools-version:5.4
+// swift-tools-version:5.9
 import PackageDescription
 
 let package = Package(
     name: "findsimulator",
     platforms: [
-        .macOS(.v11),
+        .macOS(.v13),
     ],
     products: [
         .executable(
@@ -14,9 +14,8 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            name: "swift-argument-parser",
             url: "https://github.com/apple/swift-argument-parser.git",
-            .upToNextMajor(from: "0.4.3")
+            .upToNextMajor(from: "1.5.0")
         )
     ],
     targets: [
@@ -29,6 +28,10 @@ let package = Package(
                 )
             ],
             path: "Sources"
+        ),
+        .testTarget(
+            name: "findsimulatorTests",
+            dependencies: ["findsimulator"]
         )
     ]
 )

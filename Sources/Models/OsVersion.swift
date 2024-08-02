@@ -21,7 +21,9 @@ struct OsVersion {
     let majorVersion: Int
     let minorVersion: Int
     let simulators: [SimulatorInfo]
+}
 
+extension OsVersion {
     init?(string identifier: String, simulators: [SimulatorInfo]) {
         guard let ident = identifier.split(separator: ".").last else { return nil }
         let parts = ident.split(separator: "-")

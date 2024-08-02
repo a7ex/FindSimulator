@@ -10,11 +10,6 @@ import Foundation
 /// Interface to the simctl command line tool, which is part of the Xcode tools suite
 
 struct SimulatorControl {
-    struct ErrorResponse: Codable {
-        let message: String
-        let status: Int
-    }
-
     /// The os type. It can be either 'ios', 'watchos' or 'tvos'.
     /// Note: Does only apply to filterSimulators().
     let osFilter: String
@@ -27,12 +22,32 @@ struct SimulatorControl {
     /// Note,: If 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does only apply to filterSimulators().
     let minorVersionFilter: String
 
-    /// A string contains check on the name of the simulator.
+    /// A more flexible regex check on the name of the simulator.
+    let regexPattern: String
+
+    /// A simple "string.contains" check on the name of the simulator.
     let nameFilter: String
 
+    private let shell: Shell
     private let decoder = JSONDecoder()
 
     // MARK: - Public interface
+
+    init(
+        osFilter: String,
+        majorVersionFilter: String,
+        minorVersionFilter: String,
+        nameFilter: String,
+        regexPattern: String,
+        shell: Shell = ShellCommand()
+    ) {
+        self.osFilter = osFilter
+        self.majorVersionFilter = majorVersionFilter
+        self.minorVersionFilter = minorVersionFilter
+        self.nameFilter = nameFilter
+        self.regexPattern = regexPattern
+        self.shell = shell
+    }
 
     /// Find simulators
     /// - Returns: Array of OsVersions objects containing available simulators, which match the specified filters.
@@ -41,7 +56,9 @@ struct SimulatorControl {
         switch rslt {
         case .success(let pairs):
             let (majorVersion, subVersion) = computeVersions(in: pairs, os: osFilter)
-           return pairs.enabledOSVersions
+           return pairs
+                .enabledOSVersions
+                .filteredByRegex(pattern: regexPattern)
                 .filter { $0.isEligible(for: osFilter, major: majorVersion, minor: subVersion)}
 
         case .failure(let error):
@@ -107,40 +124,10 @@ struct SimulatorControl {
     }
     
     private func executeJSONTask<T: Decodable>(with arguments: [String]) -> Result<T, Error> {
-        let rslt = execute(program: "/usr/bin/xcrun", with: arguments)
+        let rslt = shell.execute(program: "/usr/bin/xcrun", with: arguments)
         return rslt.flatMap { data in
             let rslt = Result { try decoder.decode(T.self, from: data) }
             return rslt
-        }
-    }
-    
-    private func execute(program: String, with arguments: [String]) -> Result<Data, Error> {
-        let task = Process()
-        task.launchPath = program
-        task.arguments = arguments
-        
-        // // comment out for debugging purposes:
-        // print("executing now:\n\(program) \(arguments.joined(separator: " "))")
-        
-        let outPipe = Pipe()
-        task.standardOutput = outPipe // to capture standard error, use task.standardError = outPipe
-        let errorPipe = Pipe()
-        task.standardError = errorPipe
-        task.launch()
-        let fileHandle = outPipe.fileHandleForReading
-        let data = fileHandle.readDataToEndOfFile()
-        let errorHandle = errorPipe.fileHandleForReading
-        let errorData = errorHandle.readDataToEndOfFile()
-        task.waitUntilExit()
-        let status = task.terminationStatus
-        if status != 0 {
-            return .failure(NSError(message: String(data: errorData, encoding: .utf8) ?? "", status: Int(status)))
-        } else {
-            if let error = try? decoder.decode(ErrorResponse.self, from: data) {
-                return .failure(NSError(message: error.message, status: error.status))
-            }
-            // print(String(decoding: data, as: UTF8.self))
-            return .success(data)
         }
     }
 }
@@ -168,6 +155,28 @@ private extension SimulatorListResult {
     }
 }
 
+extension Array where Element == OsVersion {
+    func filteredByRegex(pattern regexPattern: String) -> [OsVersion] {
+        guard let regex = try? Regex(regexPattern) else {
+            return self
+        }
+        return compactMap { osversion in
+            let filteredSimulators = osversion.simulators.filter { simulator in
+                return !simulator.name.ranges(of: regex).isEmpty
+            }
+            if !filteredSimulators.isEmpty {
+                return OsVersion(
+                    name: osversion.name,
+                    majorVersion: osversion.majorVersion,
+                    minorVersion: osversion.minorVersion,
+                    simulators: filteredSimulators
+                )
+            }
+            return nil
+        }
+    }
+}
+
 private extension OsVersion {
     var containsEnabledSimulators: Bool {
         return !simulators.filter({ $0.isAvailable == true }).isEmpty
@@ -177,15 +186,4 @@ private extension OsVersion {
         (major < 1 || majorVersion == major) &&
         (minor < 1 || minorVersion == minor)
     }
-}
-
-private extension NSError {
-    convenience init(message: String, status: Int = 1) {
-        let domain = Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String ?? "com.farbflash"
-        self.init(domain: "\(domain).error", code: status, userInfo: [NSLocalizedDescriptionKey: message])
-    }
-    static let noMajorVersionProvided: NSError = {
-        let domain = Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String ?? "com.farbflash"
-        return NSError(domain: "\(domain).error", code: 2, userInfo: [NSLocalizedDescriptionKey: "When specifying 'latest' for the minor OS version, you must provide a majorVersion."])
-    }()
 }
