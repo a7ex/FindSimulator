@@ -40,6 +40,21 @@ findsimulator -l "iPhone 1"
 Without the '--list-all|-l' flag the first match of the result with the '-l' flag is returned.
 So that you always get the same simulator, without the '-l' flag.
 
+A regular expression can further describe the device.
+E.g. list only devices which END on the string "Pro" ($ => end of match). Only Pro devices, not Pro Max devices:
+```
+findsimulator -l -r "Pro$"
+// platform=iOS Simulator,OS=17.5,id=D2E4C979-FFEA-4236-9F57-64C3209975A0,name=iPhone 15 Pro
+// platform=iOS Simulator,OS=17.4,id=D135ADE1-6924-4D28-86F7-E11D5C03D60B,name=iPhone 15 Pro
+// platform=iOS Simulator,OS=15.5,id=3A259DB0-3824-4AD1-B883-3250FF134CE3,name=iPhone 13 Pro
+```
+list only devices which END on the string "Pro" ($ => end of match) and contain the string 13 or 23 or 33, etc. in their name:
+```
+findsimulator -l -r "\d3\sPro$"
+// platform=iOS Simulator,OS=15.5,id=3A259DB0-3824-4AD1-B883-3250FF134CE3,name=iPhone 13 Pro
+```
+You get the picture...
+
 Simulators with watchOS 8 and minor version 'latest':
 ```
 findsimulator -o watchOS -m 8 -s latest --list-all
@@ -91,20 +106,20 @@ You should see the tool respond like this:
 ```
 OVERVIEW: Interface to simctl in order to get suitable strings for destinations for the xcodebuild command.
 
-USAGE: findsimulator [--os-type <os-type>] [--major-os-version <major-os-version>] [--sub-os-version <sub-os-version>] [--pairs ...] [--list-all ...] [--version ...] [<name_contains>]
+USAGE: findsimulator [--os-type <os-type>] [--regex-pattern <regex-pattern>] [--major-os-version <major-os-version>] [--sub-os-version <sub-os-version>] [--pairs ...] [--list-all ...] [--version ...] [<name-contains>]
 
 ARGUMENTS:
-  <name_contains>         A string contains check on the name of the simulator.
+  <name-contains>         A simple 'string contains' check on the name of the simulator. Use the [-r | --regex-pattern] option for more finegrained searches instead.
 
 OPTIONS:
-  -o, --os-type <os-type> The os type. It can be either 'ios', 'watchos' or 'tvos'. Does only apply without '-pairs' option. (default: ios)
+  -o, --os-type <os-type> The os type. It can be either 'ios', 'watchos' or 'tvos'. Does only apply without '--pairs' option. (default: ios)
+  -r, --regex-pattern <regex-pattern>
+                          A regex pattern to match the device name. Does only apply without '--pairs' option.
   -m, --major-os-version <major-os-version>
-                          The major OS version. Can be something like '12' or '14', 'all' or 'latest', which is the latest installed major
-                          version. Does only apply without '-pairs' option. (default: all)
+                          The major OS version. Can be something like '12' or '14', 'all' or 'latest', which is the latest installed major version. Does only apply without '--pairs' option. (default: all)
   -s, --sub-os-version <sub-os-version>
-                          The minor OS version. Can be something like '2' or '4', 'all' or 'latest', which is the latest installed minor version
-                          of a given major version. Note, if 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does
-                          only apply without '-pairs' option. (default: all)
+                          The minor OS version. Can be something like '2' or '4', 'all' or 'latest', which is the latest installed minor version of a given major version. Note, if 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does only apply
+                          without '-pairs' option. (default: all)
   -p, --pairs             Find iPhone Simulator in available iPhone/Watch Pairs.
   -l, --list-all          List all available and matching simulators.
   -v, --version           Print version of this tool.
