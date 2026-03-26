@@ -8,7 +8,7 @@
 import Foundation
 import ArgumentParser
 
-private let marketingVersion = "0.3"
+private let marketingVersion = "0.4"
 
 struct findsimulator: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -26,13 +26,19 @@ struct findsimulator: ParsableCommand {
 
     @Option(name: .shortAndLong, help: "The minor OS version. Can be something like '2' or '4', 'all' or 'latest', which is the latest installed minor version of a given major version. Note, if 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does only apply without '-pairs' option.")
     var subOSVersion = "all"
-    
+
+    @Option(name: .shortAndLong, help: "Filter by bootstate. Can be 'all', 'booted' or 'shutdown'. Defaults to 'all'.")
+    var bootState = "all"
+
     @Flag(name: .shortAndLong, help: "Find iPhone Simulator in available iPhone/Watch Pairs.")
     var pairs: Int
 
     @Flag(name: .shortAndLong, help: "List all available and matching simulators.")
     var listAll: Int
-    
+
+    @Flag(name: .shortAndLong, help: "Only return the UUID of the found simulator. Only efective if --list-all is not used.")
+    var uuidOnly: Int
+
     @Flag(name: .shortAndLong, help: "Print version of this tool.")
     var version: Int
     
@@ -73,12 +79,26 @@ struct findsimulator: ParsableCommand {
                     }
                 }
             } else {
-
-                if let firstVersion = versions.first,
-                   let first = firstVersion.simulators.sorted(by: { $0.name > $1.name}).first {
-                    print("platform=\(firstVersion.platform),id=\(first.udid)")
-                } else {
+                var platformString = ""
+                var udid = ""
+                for version in versions {
+                    if let first = version.simulators
+                        .sorted(by: { $0.name > $1.name})
+                        .filter( { bootState == "all" || $0.state.lowercased() == bootState })
+                        .first(where: { $0.isAvailable ?? false }) {
+                        platformString = version.platform
+                        udid = first.udid
+                        break
+                    }
+                }
+                if udid.isEmpty {
                     throw(NSError.noDeviceFound)
+                } else {
+                    if uuidOnly == 1 {
+                        print(udid)
+                    } else {
+                        print("platform=\(platformString),id=\(udid)")
+                    }
                 }
             }
         }
@@ -101,7 +121,7 @@ private extension OsVersion {
 private extension NSError {
     static let noDeviceFound: NSError = {
         let domain = Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String ?? "com.farbflash"
-        return NSError(domain: "\(domain).error", code: 1, userInfo: [NSLocalizedDescriptionKey: "No simulator found, wghich matches the query."])
+        return NSError(domain: "\(domain).error", code: 1, userInfo: [NSLocalizedDescriptionKey: "No simulator found, which matches the query."])
     }()
 }
 

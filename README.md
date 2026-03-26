@@ -73,6 +73,17 @@ findsimulator -o watchOS "Series 5" --list-all
 // platform=watchOS Simulator,OS=8.5,id=84E856B2-2B8D-46E3-B254-9EAED4AD36C3,name=Apple Watch Series 5 - 40mm
 ```
 
+There is also the `-u, --uuid-only` switch, which just returns the UDID of the simulator, for the cases, where you need the UUID of the simulator to further work with it. You might for instance want to clone a simulator and delete it after finishing the xcodebuild test run.
+```
+templateID=$(findsimulator -u -o ios -m latest -b shutdown "iPhone 1")
+cloneID=$(xcrun simctl clone "$templateID" "Simulator-for-ci-$CI_JOB_ID")
+xcrun simctl boot "$templateID"
+xcrun xcodebuild test -scheme MyApp -destination "id=$templateID" ...
+xcrun simctl shutdown "$templateID"
+xcrun simctl delete "$templateID"
+```
+
+
 ## How to get it
 ### Using homebrew
 ```
@@ -104,24 +115,42 @@ findsimulator -h
 ```
 You should see the tool respond like this:
 ```
-OVERVIEW: Interface to simctl in order to get suitable strings for destinations for the xcodebuild command.
+OVERVIEW: Interface to simctl in order to get suitable strings for destinations
+for the xcodebuild command.
 
-USAGE: findsimulator [--os-type <os-type>] [--regex-pattern <regex-pattern>] [--major-os-version <major-os-version>] [--sub-os-version <sub-os-version>] [--pairs ...] [--list-all ...] [--version ...] [<name-contains>]
+USAGE: findsimulator [--os-type <os-type>] [--regex-pattern <regex-pattern>] [--major-os-version <major-os-version>] [--sub-os-version <sub-os-version>] [--boot-state <boot-state>] [--pairs ...] [--list-all ...] [--uuid-only ...] [--version ...] [<name-contains>]
 
 ARGUMENTS:
-  <name-contains>         A simple 'string contains' check on the name of the simulator. Use the [-r | --regex-pattern] option for more finegrained searches instead.
+  <name-contains>         A simple 'string contains' check on the name of the
+                          simulator. Use the [-r | --regex-pattern] option for
+                          more finegrained searches instead.
 
 OPTIONS:
-  -o, --os-type <os-type> The os type. It can be either 'ios', 'watchos' or 'tvos'. Does only apply without '--pairs' option. (default: ios)
+  -o, --os-type <os-type> The os type. It can be either 'ios', 'watchos' or
+                          'tvos'. Does only apply without '--pairs' option.
+                          (default: ios)
   -r, --regex-pattern <regex-pattern>
-                          A regex pattern to match the device name. Does only apply without '--pairs' option.
+                          A regex pattern to match the device name. Does only
+                          apply without '--pairs' option.
   -m, --major-os-version <major-os-version>
-                          The major OS version. Can be something like '12' or '14', 'all' or 'latest', which is the latest installed major version. Does only apply without '--pairs' option. (default: all)
+                          The major OS version. Can be something like '12' or
+                          '14', 'all' or 'latest', which is the latest
+                          installed major version. Does only apply without
+                          '--pairs' option. (default: all)
   -s, --sub-os-version <sub-os-version>
-                          The minor OS version. Can be something like '2' or '4', 'all' or 'latest', which is the latest installed minor version of a given major version. Note, if 'majorOSVersion' is set to 'latest', then minor version will also be 'latest'. Does only apply
+                          The minor OS version. Can be something like '2' or
+                          '4', 'all' or 'latest', which is the latest installed
+                          minor version of a given major version. Note, if
+                          'majorOSVersion' is set to 'latest', then minor
+                          version will also be 'latest'. Does only apply
                           without '-pairs' option. (default: all)
+  -b, --boot-state <boot-state>
+                          Filter by bootstate. Can be 'all', 'booted' or
+                          'shutdown'. Defaults to 'all'. (default: all)
   -p, --pairs             Find iPhone Simulator in available iPhone/Watch Pairs.
   -l, --list-all          List all available and matching simulators.
+  -u, --uuid-only         Only return the UUID of the found simulator. Only
+                          efective if --list-all is not used.
   -v, --version           Print version of this tool.
   -h, --help              Show help information.
 ```
